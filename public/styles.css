@@ -1,0 +1,20 @@
+body {
+  margin: 0;
+  font-size: 16px;
+}
+
+body {
+  height: 100%; 
+  border: 1px;
+ }
+ 
+ #root {
+   height: 100%;
+ }
+
+
+
+.success-message {
+  padding: 0 16px;
+  color: green;
+}

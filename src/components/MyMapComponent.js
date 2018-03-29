@@ -1,86 +1,75 @@
 import React from 'react';
-import { compose, withProps, withStateHandlers, lifecycle } from "recompose";
-import { withScriptjs, withGoogleMap, GoogleMap, Marker, InfoWindow, DirectionsRenderer } from "react-google-maps";
+import {Map, InfoWindow, Marker, GoogleApiWrapper} from 'google-maps-react';
 const CaretUp = require("react-icons/lib/fa/caret-up");
-// import keys from '../../config';
-// import keys from '../credentials';  || keys.GOOGLE_API <--- PRODUCTION
-/**
- * dependencies:
- *  "googlemaps": "^1.12.0",
-    "markerclustererplus": "^2.1.4",
-    "react": "^16.2.0",
-    "react-bootstrap": "^0.31.5",
-    "react-dom": "^16.2.0",
-    "react-google-maps": "^9.4.3",
-    "react-icons": "^2.2.7",
- */
+import keys from '../../config';
+import style from './container.css';
 
 
 
-const MyMapComponent = compose(
-  withStateHandlers(() => ({
-    isOpen: false,
-    index: null,
-    isClicked: false
-  }), {
-    onToggleOpen: ({ isOpen, index }) => (clickedIndex) => ({
-      isOpen: !isOpen,
-      index: clickedIndex
-    }),
-    onDirections: ({ directions, isClicked }) => (results) => ({
-      directions: results,
-      isClicked: !isClicked
-    })
-  }),
-  withProps({
-    googleMapURL: `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API || keys.GOOGLE_API }&v=3.exp&libraries=geometry,drawing,places`,
-    loadingElement: <div style={{ height: `100%` }} />,
-    containerElement: <div style={{ height: `400px`, width: `75%`, margin: `auto`}} />,
-    mapElement: <div style={{ height: `100%` }} />,
-  }),
-  withScriptjs,
-  withGoogleMap,
-)((props) => {
-  if(props.defaultCenter) {
-    props.delayedShowMarker();
-    return (
-    <GoogleMap
-      defaultZoom={10}
-      defaultCenter={props.defaultCenter}
-    >
-      {
-        props.isMarkerShown && props.markersWithInfo.map((markerWithInfo, index) => 
-        <Marker 
-        onMouseOver={() => {props.onToggleOpen(index)}}
-        onClick={() => {
-            ((start, end) => {
-              const DirectionsService = new google.maps.DirectionsService();
-                DirectionsService.route({
-                  origin: new google.maps.LatLng(start),
-                  destination: new google.maps.LatLng(end),
-                  travelMode: google.maps.TravelMode.DRIVING,
-                }, (result, status) => {
-                  if (status === google.maps.DirectionsStatus.OK) {
-                    props.onDirections(result);
-                  } else {
-                    console.error(`error fetching directions ${result}`);
-                  }
-                })
-            })(props.defaultCenter, markerWithInfo.location)
-          }
-        }
-        icon={{url: "https://cdn3.iconfinder.com/data/icons/glypho-movie-and-video/64/film-camera-alt-512.png", scaledSize: new google.maps.Size(30, 30, 'pixel', 'pixel')}}
-        key={index} 
-        position={markerWithInfo.location}>
-        {(props.isOpen && (props.index === index)) && <InfoWindow options={{content: `Title:${markerWithInfo.title}\nTime:${markerWithInfo.start_at}\nTheater:${markerWithInfo.theater}`}} onCloseClick={props.onToggleOpen}><CaretUp /></InfoWindow>}
-        </Marker>)
-      }
-      {props.directions && props.isClicked && <DirectionsRenderer directions={props.directions} />}
-    </GoogleMap>
-    )
-  } else {
-    return ( <div></div> )
+class MapContainer extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      showingInfoWindow: false,
+      activeMarker: {},
+      info:{},
+      loc: ''
+    }
+    this.onMarkerHover = this.onMarkerHover.bind(this);
   }
-})
+  onMarkerHover(props, marker, event) {
+    this.setState({
+      showingInfoWindow: true,
+      activeMarker: marker,
+      info: props.info
+    })
+  }
+  
+  render() {
+      const mapStyle = {
+        'height': '100%',
+        'overflow': 'hidden',
+        'paddingBottom': '22.25%',
+        'paddingTop': '30px',
+        'position': 'relative',
+      }
+      return (
+        <div className={style.mapContainer}>
+          <Map
+            google={this.props.google}
+            center={
+              this.props.xy
+            }
+            gestureHandling={"cooperative"}
+            disableDefaultUI={true}
+            zoom={10}
+            style={mapStyle}
+            onDragend={
+              this.props.onMarkerPositionChanged
+            }>
+            {this.props.markers.map((marker, idx) => {
+              const lat = marker.coordinates.latitude;
+              const lng = marker.coordinates.longitude;
+              const name = marker.name;
+              return (<Marker 
+                onMouseover={this.onMarkerHover} 
+                key={idx} info={marker} 
+                position={{lat, lng}}
+              />)
+            })}
+            <InfoWindow marker={this.state.activeMarker} visible={this.state.showingInfoWindow}>
+              <div>
+                <h3> {this.state.info.name} </h3>
+                <a href={this.state.info.url}> Yelp </a>
+                <img style={{height: '40px', width: '40px'}} src={this.state.info.image_url}/>
+              </div>
+            </InfoWindow>
+          </Map>
+        </div>
+      )
+  }
+}
 
-export default MyMapComponent;
+export default GoogleApiWrapper({
+  apiKey: (keys.GoogleMap_TOKEN)
+})(MapContainer)

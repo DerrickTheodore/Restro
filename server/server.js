@@ -4,12 +4,14 @@ const webpack = require('webpack');
 const config = require('../webpack-config.js');
 const webpackMiddleware = require('webpack-dev-middleware');
 const path = require('path');
-const router = require('../src/router.js')
+const router = require('../src/router.js');
+const db = require('./config').db;
 const app = express();
 
 app.set('PORT', 1337);
 
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
 const compiler = webpack(config);
 
